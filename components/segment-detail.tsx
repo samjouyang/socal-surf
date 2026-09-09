@@ -1,9 +1,10 @@
 'use client'
 
+import { useMemo, useState } from 'react'
 import { Waves, Wind, Droplets, Thermometer, Ruler, Layers, Mountain } from 'lucide-react'
 import type { CoastSegment } from '@/lib/coastline'
 import type { HourlyPoint, SwellComponent } from '@/lib/forecast-types'
-import { type SurfScore, colorForScore, swellReach } from '@/lib/scoring'
+import { type SurfScore, colorForScore, scoreSurf, swellReach } from '@/lib/scoring'
 import { cardinal, celsiusToF, hourLabel, metersToFeet } from '@/lib/format'
 import { CompassArrow } from './compass-arrow'
 
@@ -16,24 +17,46 @@ const SWELL_LABELS: Record<SwellComponent['kind'], string> = {
 export interface OutlookPoint {
   time: string
   score: number
+  index: number
 }
+
+type OutlookMode = '24h' | '5day'
 
 export function SegmentDetail({
   seg,
-  point,
-  score,
-  outlook,
-  currentIndex,
+  hours,
+  committedIndex,
   onSelectTime,
 }: {
   seg: CoastSegment
-  point: HourlyPoint
-  score: SurfScore
-  outlook: OutlookPoint[]
-  currentIndex: number
+  hours: HourlyPoint[]
+  committedIndex: number
   onSelectTime: (i: number) => void
 }) {
+  // Hovering an outlook bar previews that hour; the preview only "sticks" when
+  // the user clicks it (which commits the time upstream via onSelectTime). While
+  // hovering, every readout below reflects the hovered hour without moving the
+  // committed time or recoloring the map.
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null)
+  const [mode, setMode] = useState<OutlookMode>('24h')
+
+  const activeIndex = hoverIndex ?? committedIndex
+  const point = hours[activeIndex] ?? hours[committedIndex] ?? hours[0]
+  const score = useMemo(() => scoreSurf(point, seg), [point, seg])
   const color = colorForScore(score.score)
+  const isPreview = hoverIndex !== null && hoverIndex !== committedIndex
+
+  const outlook = useMemo<OutlookPoint[]>(
+    () => hours.map((p, i) => ({ time: p.time, score: scoreSurf(p, seg).score, index: i })),
+    [hours, seg],
+  )
+  // 24-hour view: a 24-bar window that follows the committed hour (clamped so it
+  // always shows a full day). 5-day view: every hourly bar in the forecast.
+  const visibleOutlook = useMemo(() => {
+    if (mode === '5day') return outlook
+    const start = Math.max(0, Math.min(committedIndex, outlook.length - 24))
+    return outlook.slice(start, start + 24)
+  }, [outlook, mode, committedIndex])
 
   // Defensive: a stale/cached forecast payload built before multi-swell support
   // may lack `swells`. Fall back to the legacy single-swell fields so the panel
@@ -199,22 +222,48 @@ export function SegmentDetail({
         </div>
       </div>
 
-      {/* multi-day outlook */}
+      {/* hourly / multi-day outlook */}
       <div className="mt-auto">
-        <p className="mb-2 font-mono text-xs uppercase tracking-wider text-muted-foreground">5-day outlook</p>
-        <div className="flex h-16 items-end gap-px">
-          {outlook.map((o, i) => (
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            {mode === '24h' ? '24-hour outlook' : '5-day outlook'}
+          </p>
+          <div className="flex items-center rounded-md border border-border p-0.5 font-mono text-[10px] uppercase tracking-wide">
+            <button
+              type="button"
+              aria-pressed={mode === '24h'}
+              onClick={() => setMode('24h')}
+              className={`rounded px-2 py-0.5 transition-colors ${mode === '24h' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              24h
+            </button>
+            <button
+              type="button"
+              aria-pressed={mode === '5day'}
+              onClick={() => setMode('5day')}
+              className={`rounded px-2 py-0.5 transition-colors ${mode === '5day' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              5d
+            </button>
+          </div>
+        </div>
+        <div className="flex h-16 items-end gap-px" onMouseLeave={() => setHoverIndex(null)}>
+          {visibleOutlook.map((o) => (
             <button
               key={o.time}
               type="button"
               title={`${hourLabel(o.time)} · ${o.score.toFixed(1)}`}
-              onClick={() => onSelectTime(i)}
-              className="group relative flex-1 rounded-sm transition-opacity hover:opacity-100"
+              onMouseEnter={() => setHoverIndex(o.index)}
+              onFocus={() => setHoverIndex(o.index)}
+              onBlur={() => setHoverIndex(null)}
+              onClick={() => onSelectTime(o.index)}
+              className="group relative min-w-0 flex-1 rounded-sm transition-opacity"
               style={{
                 height: `${Math.max(6, o.score * 10)}%`,
                 backgroundColor: colorForScore(o.score),
-                opacity: i === currentIndex ? 1 : 0.55,
-                outline: i === currentIndex ? '1px solid var(--foreground)' : 'none',
+                opacity: o.index === activeIndex ? 1 : 0.5,
+                outline: o.index === committedIndex ? '1px solid var(--foreground)' : 'none',
+                outlineOffset: '1px',
               }}
             >
               <span className="sr-only">
@@ -223,6 +272,10 @@ export function SegmentDetail({
             </button>
           ))}
         </div>
+        <p className="mt-1.5 text-center font-mono text-[11px] text-muted-foreground">
+          {hourLabel(point.time)} · {score.score.toFixed(1)}
+          {isPreview ? ' · hover preview' : ' · selected'}
+        </p>
       </div>
     </div>
   )

@@ -67,12 +67,9 @@ export default function Page() {
     if (!selectedId) return null
     const seg = SEG_BY_ID.get(selectedId)
     const hrs = hoursById.get(selectedId)
-    const point = hrs?.[idx]
-    if (!seg || !hrs || !point) return null
-    const score = scoreSurf(point, seg)
-    const outlook = hrs.map((p) => ({ time: p.time, score: scoreSurf(p, seg).score }))
-    return { seg, point, score, outlook }
-  }, [selectedId, hoursById, idx])
+    if (!seg || !hrs || !hrs.length) return null
+    return { seg, hours: hrs }
+  }, [selectedId, hoursById])
 
   return (
     <div className="flex min-h-dvh flex-col md:h-dvh md:overflow-hidden">
@@ -120,10 +117,8 @@ export default function Page() {
               {detail ? (
                 <SegmentDetail
                   seg={detail.seg}
-                  point={detail.point}
-                  score={detail.score}
-                  outlook={detail.outlook}
-                  currentIndex={idx}
+                  hours={detail.hours}
+                  committedIndex={idx}
                   onSelectTime={setTimeIndex}
                 />
               ) : (
