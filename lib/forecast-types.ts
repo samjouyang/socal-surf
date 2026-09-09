@@ -1,5 +1,18 @@
 // Shared types for the surf forecast domain.
 
+/** One component of the swell train (a distinct wave system). */
+export type SwellKind = 'primary' | 'secondary' | 'windsea'
+
+export interface SwellComponent {
+  kind: SwellKind
+  /** Significant height, meters */
+  height: number
+  /** Peak period, seconds */
+  period: number
+  /** Direction it is coming FROM, degrees (0 = N, 90 = E) */
+  direction: number
+}
+
 export interface HourlyPoint {
   /** Local ISO time, e.g. "2026-09-09T14:00" */
   time: string
@@ -9,6 +22,11 @@ export interface HourlyPoint {
   swellPeriod: number
   /** Direction the swell is coming FROM, degrees (0 = N, 90 = E) */
   swellDirection: number
+  /**
+   * Up to three swell components (primary + secondary swell + local wind sea),
+   * insignificant ones dropped. Ordered most to least energetic.
+   */
+  swells: SwellComponent[]
   /** Total sea state (combined), meters — used as a fallback */
   waveHeight: number
   /** Wind speed at 10m, mph */

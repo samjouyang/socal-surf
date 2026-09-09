@@ -50,7 +50,7 @@ export default function Page() {
     for (const seg of COAST_SEGMENTS) {
       const point = hoursById.get(seg.id)?.[idx]
       if (!point) continue
-      out.push({ seg, score: scoreSurf(point, seg.shoreNormalDeg).score })
+      out.push({ seg, score: scoreSurf(point, seg).score })
     }
     return out
   }, [data, hoursById, idx])
@@ -69,8 +69,8 @@ export default function Page() {
     const hrs = hoursById.get(selectedId)
     const point = hrs?.[idx]
     if (!seg || !hrs || !point) return null
-    const score = scoreSurf(point, seg.shoreNormalDeg)
-    const outlook = hrs.map((p) => ({ time: p.time, score: scoreSurf(p, seg.shoreNormalDeg).score }))
+    const score = scoreSurf(point, seg)
+    const outlook = hrs.map((p) => ({ time: p.time, score: scoreSurf(p, seg).score }))
     return { seg, point, score, outlook }
   }, [selectedId, hoursById, idx])
 

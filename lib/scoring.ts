@@ -5,10 +5,10 @@
 // each contribution visible and tunable. Directions follow the meteorological
 // convention (the direction a swell/wind comes FROM).
 
-import type { HourlyPoint } from './forecast-types'
+import type { HourlyPoint, SwellComponent } from './forecast-types'
 
 export interface ScoreFactor {
-  key: 'exposure' | 'period' | 'height' | 'wind' | 'tide'
+  key: 'exposure' | 'period' | 'height' | 'wind' | 'tide' | 'seafloor'
   label: string
   /** Normalized quality of this factor, 0..1. */
   value: number
@@ -23,6 +23,19 @@ export interface SurfScore {
   /** Convenience flags for the detail panel. */
   windType: 'offshore' | 'cross-shore' | 'onshore'
   swellExposed: boolean
+  /** True when two+ well-exposed swells from different directions overlap. */
+  combo: boolean
+  /** Seafloor-focus multiplier applied to size (1 = neutral). */
+  focus: number
+  focusLabel: string | null
+  /** Combined, exposure-weighted breaking height after focus, meters. */
+  effectiveHeightM: number
+}
+
+/** How directly a swell from `direction` reaches a shore facing `shoreNormalDeg`. */
+export function swellReach(direction: number, shoreNormalDeg: number): { exposed: boolean; value: number } {
+  const e = exposureFactor(direction, shoreNormalDeg)
+  return { exposed: e.exposed, value: e.value }
 }
 
 const DEG2RAD = Math.PI / 180
@@ -116,40 +129,88 @@ export function scoreLabel(score: number): string {
 
 const WEIGHTS = { period: 0.3, height: 0.3, wind: 0.3, tide: 0.1 }
 
-export function scoreSurf(point: HourlyPoint, shoreNormalDeg: number): SurfScore {
-  const heightM = point.swellHeight > 0 ? point.swellHeight : point.waveHeight
-  const exp = exposureFactor(point.swellDirection, shoreNormalDeg)
-  const per = periodFactor(point.swellPeriod)
-  const hgt = heightFactor(heightM)
+interface SegmentShape {
+  shoreNormalDeg: number
+  focus?: number
+  focusLabel?: string | null
+}
+
+export function scoreSurf(point: HourlyPoint, seg: SegmentShape): SurfScore {
+  const shoreNormalDeg = seg.shoreNormalDeg
+  const focus = seg.focus ?? 1
+  const focusLabel = seg.focusLabel ?? null
+
+  // The swell train (fall back to a single component from the legacy fields).
+  const comps: SwellComponent[] =
+    point.swells && point.swells.length
+      ? point.swells
+      : point.swellHeight > 0
+        ? [{ kind: 'primary', height: point.swellHeight, period: point.swellPeriod, direction: point.swellDirection }]
+        : []
+
+  // Evaluate each component's exposure and delivered energy at this shore.
+  const evaluated = comps.map((c) => {
+    const e = exposureFactor(c.direction, shoreNormalDeg)
+    const effExposure = e.exposed ? e.value : 0
+    const energy = c.height * c.height * Math.max(1, c.period) * effExposure
+    return { c, exposure: e, effExposure, energy }
+  })
+  const exposed = evaluated.filter((x) => x.exposure.exposed && x.effExposure > 0.05 && x.c.height > 0.05)
+  const exposedAny = exposed.length > 0
+
+  // Energy adds in quadrature, so combining swells raises the effective face.
+  const combinedH = Math.sqrt(exposed.reduce((s, x) => s + (x.c.height * x.effExposure) ** 2, 0))
+  const effectiveHeightM = combinedH * focus
+
+  const totalEnergy = exposed.reduce((s, x) => s + x.energy, 0)
+  const domPeriod = totalEnergy > 0 ? exposed.reduce((s, x) => s + x.c.period * x.energy, 0) / totalEnergy : 0
+  const combinedExposure =
+    totalEnergy > 0 ? exposed.reduce((s, x) => s + x.effExposure * x.energy, 0) / totalEnergy : 0
+
+  const per = periodFactor(domPeriod)
+  const hgt = heightFactor(effectiveHeightM)
   const wind = windFactor(point.windDirection, point.windSpeed, shoreNormalDeg)
   const tide = tideFactor(point.tide)
 
-  const conditions =
+  // Combo swell: two+ well-exposed groundswells arriving from different windows
+  // stack into peakier, more consistent sets.
+  const groundish = exposed.filter((x) => x.c.period >= 8 && x.effExposure > 0.35 && x.c.height >= 0.25)
+  let combo = false
+  for (let i = 0; i < groundish.length && !combo; i++) {
+    for (let j = i + 1; j < groundish.length && !combo; j++) {
+      if (angleDiff(groundish[i].c.direction, groundish[j].c.direction) >= 20) combo = true
+    }
+  }
+
+  let conditions =
     WEIGHTS.period * per + WEIGHTS.height * hgt + WEIGHTS.wind * wind.value + WEIGHTS.tide * tide.value
-  // Exposure gates everything: no swell reaching the beach means no surf.
-  const exposureMult = exp.exposed ? 0.4 + 0.6 * exp.value : 0
-  const score = Math.round(exposureMult * conditions * 10 * 10) / 10
+  if (combo) conditions = clamp01(conditions * 1.08)
+
+  const exposureMult = exposedAny ? 0.4 + 0.6 * combinedExposure : 0
+  // A focusing seafloor doesn't just add size, it holds shape — small direct bump.
+  const focusScoreMult = exposedAny ? 1 + Math.max(0, focus - 1) * 0.15 : 1
+  const score = Math.round(Math.min(10, exposureMult * conditions * 10 * focusScoreMult) * 10) / 10
 
   const factors: ScoreFactor[] = [
     {
       key: 'exposure',
       label: 'Swell exposure',
-      value: exp.value,
-      detail: exp.exposed
-        ? `${Math.round(exp.diff)}\u00b0 off the shore normal`
+      value: exposedAny ? combinedExposure : 0,
+      detail: exposedAny
+        ? `${exposed.length} of ${comps.length} swell${comps.length === 1 ? '' : 's'} reaching`
         : 'Blocked \u2014 swell shadowed by land',
     },
     {
       key: 'period',
       label: 'Swell period',
       value: per,
-      detail: `${point.swellPeriod.toFixed(0)}s ${point.swellPeriod >= 12 ? 'groundswell' : point.swellPeriod >= 9 ? 'mid-period' : 'windswell'}`,
+      detail: `${domPeriod.toFixed(0)}s ${domPeriod >= 12 ? 'groundswell' : domPeriod >= 9 ? 'mid-period' : 'windswell'}`,
     },
     {
       key: 'height',
-      label: 'Swell size',
+      label: 'Wave size',
       value: hgt,
-      detail: `${(heightM * 3.281).toFixed(1)} ft face`,
+      detail: `${(effectiveHeightM * 3.281).toFixed(1)} ft face${focus !== 1 ? ` (${focus > 1 ? '+' : ''}${Math.round((focus - 1) * 100)}% seafloor)` : ''}`,
     },
     {
       key: 'wind',
@@ -159,13 +220,25 @@ export function scoreSurf(point: HourlyPoint, shoreNormalDeg: number): SurfScore
     },
     { key: 'tide', label: 'Tide', value: tide.value, detail: `${tide.state} tide` },
   ]
+  if (focusLabel) {
+    factors.push({
+      key: 'seafloor',
+      label: 'Seafloor',
+      value: clamp01(0.5 + (focus - 1)),
+      detail: focusLabel,
+    })
+  }
 
   return {
     score,
     label: scoreLabel(score),
     factors,
     windType: wind.windType,
-    swellExposed: exp.exposed,
+    swellExposed: exposedAny,
+    combo,
+    focus,
+    focusLabel,
+    effectiveHeightM,
   }
 }
 

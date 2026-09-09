@@ -17,6 +17,16 @@ export interface CoastSegment {
   shoreNormalDeg: number
   tideStationId: string
   tideStationName: string
+  /**
+   * Curated seafloor-focus multiplier for the effective wave size. 1 = a normal
+   * open-shelf beach; >1 where offshore bathymetry (a submarine canyon) refracts
+   * and focuses swell energy, jacking up size; <1 where a wide, shallow shelf
+   * bleeds energy before it reaches the sand. This stands in for live nearshore
+   * bathymetric refraction, which no free public API provides.
+   */
+  focus: number
+  /** Short reason shown in the UI when focus != 1, else null. */
+  focusLabel: string | null
 }
 
 export type Region = 'Orange County' | 'San Diego County'
@@ -100,6 +110,47 @@ function regionForLat(lat: number): Region {
   return lat >= 33.386 ? 'Orange County' : 'San Diego County'
 }
 
+// Curated bathymetric-focus zones. `gain` is the peak multiplier at the center,
+// falling off smoothly to 1 by `radiusMi`. These encode well-documented seafloor
+// features rather than a live depth model.
+interface FocusZone {
+  lat: number
+  lon: number
+  radiusMi: number
+  gain: number
+  label: string
+}
+
+const FOCUS_ZONES: FocusZone[] = [
+  // Scripps + La Jolla submarine canyons funnel swell straight into Blacks Beach,
+  // which is why it holds dramatically bigger surf than the beaches beside it.
+  { lat: 32.889, lon: -117.253, radiusMi: 1.6, gain: 1.42, label: 'Scripps Canyon focus (Blacks)' },
+  // Newport submarine canyon comes within ~1/4 mi of shore and wedges swell at
+  // the Wedge / Newport Point.
+  { lat: 33.593, lon: -117.881, radiusMi: 1.3, gain: 1.32, label: 'Newport Canyon focus (The Wedge)' },
+  // La Jolla Canyon also lifts the Shores/Windansea stretch a little.
+  { lat: 32.855, lon: -117.262, radiusMi: 1.0, gain: 1.14, label: 'La Jolla Canyon focus' },
+  // Broad, shallow shelf across the Silver Strand saps swell before it lands.
+  { lat: 32.63, lon: -117.14, radiusMi: 2.2, gain: 0.9, label: 'Wide shallow shelf' },
+]
+
+function focusAt(lat: number, lon: number): { focus: number; focusLabel: string | null } {
+  let best = { focus: 1, focusLabel: null as string | null, weight: 0 }
+  for (const z of FOCUS_ZONES) {
+    const d = haversineMiles(lat, lon, z.lat, z.lon)
+    if (d >= z.radiusMi) continue
+    // Smooth cosine falloff from center (full gain) to edge (neutral).
+    const t = 1 - d / z.radiusMi
+    const weight = t * t * (3 - 2 * t)
+    const focus = 1 + (z.gain - 1) * weight
+    // Keep the strongest deviation from neutral.
+    if (Math.abs(focus - 1) > Math.abs(best.focus - 1)) {
+      best = { focus, focusLabel: z.label, weight }
+    }
+  }
+  return { focus: Math.round(best.focus * 100) / 100, focusLabel: best.focusLabel }
+}
+
 function buildSegments(): CoastSegment[] {
   // 1. Densify the anchor polyline to ~5-mile spacing.
   const pts: { lat: number; lon: number }[] = []
@@ -135,6 +186,7 @@ function buildSegments(): CoastSegment[] {
       const d = haversineMiles(lat, lon, a.lat, a.lon)
       return d < acc.d ? { name: a.name, d } : acc
     }, { name: ANCHORS[0].name, d: Number.POSITIVE_INFINITY })
+    const { focus, focusLabel } = focusAt(lat, lon)
 
     segments.push({
       id: `seg-${i.toString().padStart(3, '0')}`,
@@ -145,6 +197,8 @@ function buildSegments(): CoastSegment[] {
       shoreNormalDeg: Math.round(normal),
       tideStationId: station.id,
       tideStationName: station.name,
+      focus,
+      focusLabel,
     })
   }
   return segments

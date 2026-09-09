@@ -1,11 +1,17 @@
 'use client'
 
-import { Waves, Wind, Droplets, Thermometer, Navigation, Ruler } from 'lucide-react'
+import { Waves, Wind, Droplets, Thermometer, Ruler, Layers, Mountain } from 'lucide-react'
 import type { CoastSegment } from '@/lib/coastline'
-import type { HourlyPoint } from '@/lib/forecast-types'
-import { type SurfScore, colorForScore } from '@/lib/scoring'
+import type { HourlyPoint, SwellComponent } from '@/lib/forecast-types'
+import { type SurfScore, colorForScore, swellReach } from '@/lib/scoring'
 import { cardinal, celsiusToF, hourLabel, metersToFeet } from '@/lib/format'
 import { CompassArrow } from './compass-arrow'
+
+const SWELL_LABELS: Record<SwellComponent['kind'], string> = {
+  primary: 'Primary swell',
+  secondary: 'Secondary swell',
+  windsea: 'Wind sea',
+}
 
 export interface OutlookPoint {
   time: string
@@ -54,27 +60,87 @@ export function SegmentDetail({
             {score.label}
           </p>
           <p className="text-sm text-muted-foreground">Surf quality, 0&ndash;10</p>
+          {score.combo && (
+            <span className="mt-1 inline-flex w-fit items-center gap-1 rounded bg-primary/20 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-primary">
+              <Layers className="size-3" /> Combo swell
+            </span>
+          )}
         </div>
+      </div>
+
+      {/* swell train */}
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
+            Swell train ({point.swells.length || 1})
+          </p>
+        </div>
+        <div className="flex flex-col gap-2">
+          {(point.swells.length
+            ? point.swells
+            : [
+                {
+                  kind: 'primary' as const,
+                  height: point.swellHeight,
+                  period: point.swellPeriod,
+                  direction: point.swellDirection,
+                },
+              ]
+          ).map((sw, i) => {
+            const reach = swellReach(sw.direction, seg.shoreNormalDeg)
+            return (
+              <div
+                key={`${sw.kind}-${i}`}
+                className="flex items-center gap-3 rounded-xl border border-border bg-secondary/40 p-3"
+                style={{ opacity: reach.exposed ? 1 : 0.5 }}
+              >
+                <CompassArrow fromDeg={sw.direction} size={28} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="truncate text-sm font-medium text-foreground">{SWELL_LABELS[sw.kind]}</span>
+                    <span className="shrink-0 font-mono text-sm text-foreground">
+                      {metersToFeet(sw.height).toFixed(1)} ft
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2 font-mono text-xs text-muted-foreground">
+                    <span>
+                      {cardinal(sw.direction)} {sw.direction}&deg; @ {sw.period.toFixed(0)}s
+                    </span>
+                    <span className={reach.exposed ? 'text-primary' : 'text-destructive'}>
+                      {reach.exposed ? `${Math.round(reach.value * 100)}% open` : 'blocked'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        {score.focusLabel && (
+          <div className="mt-2 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-foreground">
+            <Mountain className="size-4 shrink-0 text-primary" />
+            <span>
+              {score.focusLabel} &middot; {score.focus > 1 ? 'amplifies' : 'reduces'} size{' '}
+              <span className="font-mono">
+                {score.focus > 1 ? '+' : ''}
+                {Math.round((score.focus - 1) * 100)}%
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* readouts */}
       <div className="grid grid-cols-2 gap-3">
-        <Readout icon={<Waves className="size-4" />} label="Swell">
-          <span className="text-lg font-semibold text-foreground">{metersToFeet(point.swellHeight).toFixed(1)} ft</span>
-          <span className="font-mono text-xs text-muted-foreground">@ {point.swellPeriod.toFixed(0)}s</span>
-        </Readout>
-
         <Readout icon={<Ruler className="size-4" />} label="Wave height">
           <span className="text-lg font-semibold text-foreground">{metersToFeet(point.waveHeight).toFixed(1)} ft</span>
           <span className="font-mono text-xs text-muted-foreground">combined sea + swell</span>
         </Readout>
 
-        <Readout icon={<Navigation className="size-4" />} label="Swell dir">
-          <div className="flex items-center gap-2 text-primary">
-            <CompassArrow fromDeg={point.swellDirection} size={26} />
-            <span className="text-lg font-semibold text-foreground">{cardinal(point.swellDirection)}</span>
-          </div>
-          <span className="font-mono text-xs text-muted-foreground">{point.swellDirection}&deg;</span>
+        <Readout icon={<Waves className="size-4" />} label="Face">
+          <span className="text-lg font-semibold text-foreground">
+            {metersToFeet(score.effectiveHeightM).toFixed(1)} ft
+          </span>
+          <span className="font-mono text-xs text-muted-foreground">exposed + seafloor</span>
         </Readout>
 
         <Readout icon={<Wind className="size-4" />} label="Wind">

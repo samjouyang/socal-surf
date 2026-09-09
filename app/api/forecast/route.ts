@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { COAST_SEGMENTS } from '@/lib/coastline'
-import type { ForecastResponse, HourlyPoint, SegmentForecast } from '@/lib/forecast-types'
+import type { ForecastResponse, HourlyPoint, SegmentForecast, SwellComponent } from '@/lib/forecast-types'
 
 // Aggregates free public data (no API keys) into one cached forecast payload:
 //  - Open-Meteo Marine API   -> swell height/period/direction, wave height, SST,
@@ -37,7 +37,20 @@ async function fetchMarine(batch: typeof COAST_SEGMENTS): Promise<OMHourly[]> {
   url.searchParams.set('longitude', batch.map((s) => s.lon).join(','))
   url.searchParams.set(
     'hourly',
-    'swell_wave_height,swell_wave_period,swell_wave_direction,wave_height,sea_surface_temperature,sea_level_height_msl',
+    [
+      'swell_wave_height',
+      'swell_wave_period',
+      'swell_wave_direction',
+      'secondary_swell_wave_height',
+      'secondary_swell_wave_period',
+      'secondary_swell_wave_direction',
+      'wind_wave_height',
+      'wind_wave_period',
+      'wind_wave_direction',
+      'wave_height',
+      'sea_surface_temperature',
+      'sea_level_height_msl',
+    ].join(','),
   )
   url.searchParams.set('timezone', TZ)
   url.searchParams.set('forecast_days', String(FORECAST_DAYS))
@@ -68,6 +81,39 @@ function num(arr: (number | null)[] | string[] | undefined, i: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : 0
 }
 
+const r2 = (x: number) => Math.round(x * 100) / 100
+const r1 = (x: number) => Math.round(x * 10) / 10
+
+/**
+ * Build the swell train for one hour from the model's partitioned components
+ * (primary swell, secondary swell, local wind sea). Insignificant components
+ * are dropped so we only surface real, meaningful swells, capped at three and
+ * ordered by wave energy (height^2 * period).
+ */
+function buildSwells(m: OMHourly | undefined, i: number): SwellComponent[] {
+  const raw: SwellComponent[] = [
+    { kind: 'primary', height: num(m?.swell_wave_height, i), period: num(m?.swell_wave_period, i), direction: num(m?.swell_wave_direction, i) },
+    { kind: 'secondary', height: num(m?.secondary_swell_wave_height, i), period: num(m?.secondary_swell_wave_period, i), direction: num(m?.secondary_swell_wave_direction, i) },
+    { kind: 'windsea', height: num(m?.wind_wave_height, i), period: num(m?.wind_wave_period, i), direction: num(m?.wind_wave_direction, i) },
+  ]
+  const primaryH = raw[0].height
+  const kept = raw.filter((s) => {
+    if (s.height <= 0 || s.period <= 0) return false
+    if (s.kind === 'primary') return true
+    // A secondary system only matters if it's tall enough on its own AND a
+    // meaningful fraction of the dominant swell; otherwise it's noise.
+    return s.height >= 0.2 && s.height >= 0.28 * Math.max(primaryH, 0.01)
+  })
+  const energy = (s: SwellComponent) => s.height * s.height * Math.max(1, s.period)
+  kept.sort((a, b) => energy(b) - energy(a))
+  return kept.slice(0, 3).map((s) => ({
+    kind: s.kind,
+    height: r2(s.height),
+    period: r1(s.period),
+    direction: Math.round(s.direction),
+  }))
+}
+
 export async function GET() {
   const warnings: string[] = []
 
@@ -90,10 +136,11 @@ export async function GET() {
       const hasTide = Array.isArray(m?.sea_level_height_msl)
       const hours: HourlyPoint[] = times.map((t, i) => ({
         time: t,
-        swellHeight: Math.round(num(m?.swell_wave_height, i) * 100) / 100,
-        swellPeriod: Math.round(num(m?.swell_wave_period, i) * 10) / 10,
+        swellHeight: r2(num(m?.swell_wave_height, i)),
+        swellPeriod: r1(num(m?.swell_wave_period, i)),
         swellDirection: Math.round(num(m?.swell_wave_direction, i)),
-        waveHeight: Math.round(num(m?.wave_height, i) * 100) / 100,
+        swells: buildSwells(m, i),
+        waveHeight: r2(num(m?.wave_height, i)),
         windSpeed: Math.round(num(w?.wind_speed_10m, i)),
         windDirection: Math.round(num(w?.wind_direction_10m, i)),
         waterTemp: Math.round(num(m?.sea_surface_temperature, i) * 10) / 10,
