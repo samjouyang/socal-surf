@@ -1,6 +1,6 @@
 'use client'
 
-import { Waves, Wind, Droplets, Thermometer, Navigation } from 'lucide-react'
+import { Waves, Wind, Droplets, Thermometer, Navigation, Ruler } from 'lucide-react'
 import type { CoastSegment } from '@/lib/coastline'
 import type { HourlyPoint } from '@/lib/forecast-types'
 import { type SurfScore, colorForScore } from '@/lib/scoring'
@@ -28,7 +28,6 @@ export function SegmentDetail({
   onSelectTime: (i: number) => void
 }) {
   const color = colorForScore(score.score)
-  const heightM = point.swellHeight > 0 ? point.swellHeight : point.waveHeight
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
@@ -61,8 +60,13 @@ export function SegmentDetail({
       {/* readouts */}
       <div className="grid grid-cols-2 gap-3">
         <Readout icon={<Waves className="size-4" />} label="Swell">
-          <span className="text-lg font-semibold text-foreground">{metersToFeet(heightM).toFixed(1)} ft</span>
+          <span className="text-lg font-semibold text-foreground">{metersToFeet(point.swellHeight).toFixed(1)} ft</span>
           <span className="font-mono text-xs text-muted-foreground">@ {point.swellPeriod.toFixed(0)}s</span>
+        </Readout>
+
+        <Readout icon={<Ruler className="size-4" />} label="Wave height">
+          <span className="text-lg font-semibold text-foreground">{metersToFeet(point.waveHeight).toFixed(1)} ft</span>
+          <span className="font-mono text-xs text-muted-foreground">combined sea + swell</span>
         </Readout>
 
         <Readout icon={<Navigation className="size-4" />} label="Swell dir">

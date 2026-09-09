@@ -7,9 +7,9 @@ const geistSans = Geist({ subsets: ['latin'], variable: '--font-geist-sans' })
 const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono' })
 
 export const metadata: Metadata = {
-  title: 'Swellline — West Coast Surf Forecast',
+  title: 'Swellline — Southern California Surf Forecast',
   description:
-    'Live surf-quality forecast for the entire US West Coast, modeled swell, wind and tide scored against each stretch of shoreline.',
+    'Live surf-quality forecast for the Southern California coast from Huntington Beach to Imperial Beach, modeled swell, wind and tide scored against each stretch of shoreline.',
   generator: 'v0.app',
 }
 

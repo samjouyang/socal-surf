@@ -83,12 +83,12 @@ export default function Page() {
           </span>
           <div>
             <h1 className="font-mono text-sm font-bold uppercase tracking-widest text-foreground">Swellline</h1>
-            <p className="text-[11px] leading-none text-muted-foreground">US West Coast surf forecast</p>
+            <p className="text-[11px] leading-none text-muted-foreground">Southern California surf forecast</p>
           </div>
         </div>
         <p className="ml-auto max-w-md text-pretty text-xs text-muted-foreground">
-          Every ~5 miles of shoreline scored 0&ndash;10 from modeled swell, wind and tide against the coast&apos;s
-          orientation.
+          Huntington Beach to Imperial Beach, every ~0.4 miles scored 0&ndash;10 from modeled swell, wind and tide
+          against the coast&apos;s orientation.
         </p>
       </header>
 
