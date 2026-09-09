@@ -74,3 +74,55 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* --- Leaflet dark map ---------------------------------------------------- */
+.leaflet-container {
+  background: var(--ocean-deep);
+  font-family: var(--font-sans);
+}
+
+/* Turn the light OpenStreetMap raster into a dark basemap. Only the tile pane
+   is filtered, so the colored surf overlay keeps its true colors. */
+.leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9) saturate(0.8);
+}
+
+.leaflet-bar,
+.leaflet-bar a,
+.leaflet-control-zoom a {
+  background-color: color-mix(in oklch, var(--card) 88%, transparent);
+  color: var(--foreground);
+  border-color: var(--border);
+  backdrop-filter: blur(4px);
+}
+.leaflet-bar a:hover,
+.leaflet-control-zoom a:hover {
+  background-color: var(--secondary);
+  color: var(--foreground);
+}
+
+.leaflet-control-attribution {
+  background: color-mix(in oklch, var(--card) 80%, transparent) !important;
+  color: var(--muted-foreground) !important;
+  font-size: 10px;
+  padding: 1px 6px;
+}
+.leaflet-control-attribution a {
+  color: var(--muted-foreground) !important;
+}
+
+.leaflet-tooltip {
+  background: var(--popover);
+  color: var(--popover-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.4);
+}
+.leaflet-tooltip-right::before {
+  border-right-color: var(--popover);
+}
+.leaflet-tooltip-left::before {
+  border-left-color: var(--popover);
+}

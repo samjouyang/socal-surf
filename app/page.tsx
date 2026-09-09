@@ -109,14 +109,14 @@ export default function Page() {
 
           {/* Map + detail */}
           <div className="flex flex-1 flex-col gap-3 md:min-h-0 md:flex-row">
-            <div className="relative min-h-[440px] overflow-hidden rounded-xl border border-border bg-card md:min-h-0 md:w-[300px] md:shrink-0">
+            <div className="relative min-h-[460px] flex-1 overflow-hidden rounded-xl border border-border bg-card md:min-h-0">
               <CoastMap scored={scored} selectedId={selectedId} onSelect={setSelectedId} />
-              <div className="absolute bottom-3 left-3 right-3 rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur-sm">
+              <div className="pointer-events-none absolute left-3 right-3 top-3 z-[500] rounded-lg border border-border bg-card/85 px-3 py-2 backdrop-blur-sm sm:right-auto">
                 <QualityLegend />
               </div>
             </div>
 
-            <div className="min-h-0 w-full flex-1 overflow-hidden rounded-xl border border-border bg-card">
+            <div className="min-h-0 w-full overflow-hidden rounded-xl border border-border bg-card md:w-[380px] md:shrink-0">
               {detail ? (
                 <SegmentDetail
                   seg={detail.seg}
