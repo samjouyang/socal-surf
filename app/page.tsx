@@ -87,8 +87,8 @@ export default function Page() {
           </div>
         </div>
         <p className="ml-auto max-w-md text-pretty text-xs text-muted-foreground">
-          Huntington Beach to Imperial Beach, every ~0.4 miles scored 0&ndash;10 from modeled swell, wind and tide
-          against the coast&apos;s orientation.
+          Point Dume to Imperial Beach, every ~0.4 miles scored 0&ndash;10 from modeled swell, wind and tide against
+          the coast&apos;s orientation.
         </p>
       </header>
 

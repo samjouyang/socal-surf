@@ -9,7 +9,7 @@ const geistMono = Geist_Mono({ subsets: ['latin'], variable: '--font-geist-mono'
 export const metadata: Metadata = {
   title: 'Swellline — Southern California Surf Forecast',
   description:
-    'Live surf-quality forecast for the Southern California coast from Huntington Beach to Imperial Beach, modeled swell, wind and tide scored against each stretch of shoreline.',
+    'Live surf-quality forecast for the Southern California coast from Point Dume in Malibu to Imperial Beach, modeled swell, wind and tide scored against each stretch of shoreline.',
   generator: 'v0.app',
 }
 
