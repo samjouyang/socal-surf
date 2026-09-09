@@ -1,0 +1,170 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[usenames,dvipsnames]{color}
+\usepackage{enumitem}
+\usepackage[hidelinks]{hyperref}
+\usepackage{fancyhdr}
+\usepackage[english]{babel}
+\usepackage{tabularx}
+\usepackage{fontawesome5}
+\usepackage{ragged2e}
+\usepackage{etoolbox}
+\usepackage{tikz}
+\input{glyphtounicode}
+
+\usepackage{newpxtext}
+\linespread{0.97}
+\usepackage[T1]{fontenc}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1in}
+\addtolength{\topmargin}{-0.55in}
+\addtolength{\textheight}{1.2in}
+
+\urlstyle{same}
+
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\setlength{\footskip}{5pt}
+
+\titleformat{\section}{
+  \vspace{-2pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule\vspace{-4pt}]
+
+\pdfgentounicode=1
+
+% custom commands
+\newcommand{\cvitem}[1]{\item\small{#1\vspace{-2pt}}}
+\newcommand{\cvheading}[4]{
+  \vspace{-2pt}\item
+    \begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+      \textbf{#1} & #2 \\
+      \small#3 & \small #4 \\
+    \end{tabular*}\vspace{-6pt}
+}
+\newcommand{\cvheadingstart}{\begin{itemize}[leftmargin=0in, label={}]}
+\newcommand{\cvheadingend}{\end{itemize}}
+\newcommand{\cvitemstart}{\begin{itemize}[leftmargin=*, label=\textopenbullet, itemsep=1pt, topsep=1pt]\justifying}
+\newcommand{\cvitemend}{\end{itemize}\vspace{-4pt}}
+
+\renewcommand\labelitemii{$\vcenter{\hbox{\footnotesize$\bullet$}}$}
+
+\begin{document}
+
+\begin{center}
+  \textbf{\LARGE\scshape Sam Ouyang} \\
+  \vspace{1pt}\small
+  \href{mailto:samjouyang@icloud.com}{samjouyang@icloud.com}
+  $\ \diamond\ $
+  847-767-5352
+  $\ \diamond\ $
+  \href{https://github.com/samjouyang/}{GitHub}
+  $\ \diamond\ $
+  \href{https://www.linkedin.com/in/sam-ouyang/}{LinkedIn}
+\end{center}
+
+\section{Education}
+\cvheadingstart
+  \cvheading
+    {University of California, San Diego}{La Jolla, CA}
+    {B.S. Data Science; B.S. Business Economics}{Expected June 2027}
+\cvheadingend
+
+\section{Relevant Experience}
+\cvheadingstart
+
+  \cvheading
+    {Motorola Solutions}{Chicago, IL}
+    {Sales Operations Data Analyst Intern}{Jun 2026 -- Aug 2026}
+  \cvitemstart
+    \cvitem{Developed an interactive Tableau cross-sell dashboard by integrating and transforming multiple Redshift datasets to identify high-value product combinations and generate targeted end-user opportunities based on selectable sales metrics.}
+    \cvitem{Built automated Salesforce-to-Google Sheets data pipelines using G-Connector and integrated outputs into Tableau to analyze partner win rates across regions, product lines, end-user industries, and competitors.}
+    \cvitem{Calculated a \$175M total addressable market and \$30M target market for an Avigilon Fixed Video disaster relief initiative by analyzing historical Salesforce sales data, product combinations, and customer demand; presented findings to company executives.}
+    \cvitem{Applied chi-square and binomial hypothesis tests to Salesforce opportunity data, identifying suspicious competitor and closed-reason selection patterns among over 70\% of opportunity owners and informing management-led reeducation efforts.}
+  \cvitemend
+
+  \cvheading
+    {Triton Ball, UCSD}{La Jolla, CA}
+    {Head of External Affairs, Data Analyst}{Mar 2025 -- Present}
+  \cvitemstart
+    \cvitem{Coordinate outreach for events, sponsorships, and public speakers to expand club partnerships and visibility, leading to a 35\% increase in organizational collaborations.}
+    \cvitem{Analyze attendance and engagement data using Python and Excel to optimize event planning and engagement strategies, improving participation by 22\%.}
+    \cvitem{Collect and visualize sports analytics metrics for internal reporting and presentations.}
+  \cvitemend
+
+  \cvheading
+    {Balyasny Asset Management}{Chicago, IL}
+    {Data Analysis Intern}{Jul 2024 -- Aug 2024}
+  \cvitemstart
+    \cvitem{Developed stock analysis project comparing industry rivals using Python, sentiment analysis, and LSTM forecasting models with Keras, improving prediction accuracy by 14\%.}
+    \cvitem{Integrated vendor datasets in Excel to improve forecasting accuracy and created management visualizations, reducing reporting turnaround time by 30\%.}
+    \cvitem{Produced daily reports evaluating social media trends' impact on market movements for investment decisions, influencing trade considerations for portfolios valued over \$10M.}
+  \cvitemend
+
+\cvheadingend
+
+\section{Leadership \& Additional Experience}
+\cvheadingstart
+  \cvheading
+    {UCSD Outback Adventures}{La Jolla, CA}
+    {Wilderness Guide}{Oct 2024 -- Present}
+  \cvitemstart
+    \cvitem{Lead outdoor adventure trips for 5--10 participants, teaching navigation, conflict resolution, and first aid.}
+  \cvitemend
+
+  \cvheading
+    {Sigma Phi Epsilon Fraternity, UCSD}{La Jolla, CA}
+    {Vice President of Educational Committee}{Apr 2024 -- Apr 2025}
+  \cvitemstart
+    \cvitem{Directed academic initiatives, workshops and mentoring programs; contributed to chapter GPA increase from 3.10 to 3.37 (2024-2025).}
+  \cvitemend
+
+\cvheadingend
+
+\section{Highlighted Projects}
+\cvheadingstart
+  \cvheading
+    {SoCal Surf}{2026}
+    {Personal Project}{\href{https://socalsurf.co}{socalsurf.co}}
+  \cvitemstart
+    \cvitem{Built a full-stack surf-forecasting web app (Next.js, React, TypeScript) that scores every $\sim$0.4 miles of the Southern California coast from Point Dume to Imperial Beach, modeling 400+ discrete shoreline segments on a 0--10 quality scale.}
+    \cvitem{Engineered a physics-informed scoring engine combining multi-component swell trains, swell exposure against each segment's computed shore orientation, period, wave height, wind, and tide, plus curated bathymetric focus for submarine-canyon breaks such as Blacks Beach.}
+    \cvitem{Integrated free NOAA-model marine and weather APIs (Open-Meteo WaveWatch III / GFS) using batched, cached requests to deliver 120-hour hourly forecasts without external API keys.}
+    \cvitem{Visualized results on an interactive Leaflet map with click-to-inspect segments, hover previews, and toggleable 24-hour and 5-day outlooks.}
+  \cvitemend
+
+  \cvheading
+    {Strava Predictive Analysis}{2025}
+    {Collaborative Project}{\href{https://github.com/samjouyang/Strava/blob/main/presentation.ipynb}{GitHub}}
+  \cvitemstart
+    \cvitem{Developed a two-stage Ridge regression pipeline to predict personalized running distance and pace for future workouts, achieving an 11.1\% accuracy improvement over baseline models using 400+ Strava GPS activities.}
+    \cvitem{Engineered 20+ temporal features from time-series GPS data, including moving averages, distance trends, elevation patterns, and recovery metrics, using an 80/20 train--test split.}
+    \cvitem{Optimized model hyperparameters via 5-fold cross-validation and GridSearchCV, achieving a 1.23-mile distance MAE and 0.57 min/mile pace MAE on a held-out test set.}
+    \cvitem{Validated model performance through detailed error analysis, baseline comparisons, and per-runner predictions consistent with running physiology principles.}
+  \cvitemend
+
+\cvheadingend
+
+\section{Technical \& Professional Skills}
+\cvheadingstart
+\item
+\cvitemstart
+  \cvitem{\textbf{Programming \& Data:} Python, SQL, Java, HTML, Pandas, NumPy, Data Visualization}
+  \cvitem{\textbf{Analytics \& Tools:} Tableau, Salesforce, Redshift, Excel, G-Connector, Power BI, Stata, MATLAB}
+  \cvitem{\textbf{Methods:} Statistical Hypothesis Testing, Forecasting Models, Data Transformation, Dashboard Development, Web Scraping}
+\cvitemend
+\cvheadingend
+
+\end{document}
