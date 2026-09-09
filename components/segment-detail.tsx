@@ -35,6 +35,23 @@ export function SegmentDetail({
 }) {
   const color = colorForScore(score.score)
 
+  // Defensive: a stale/cached forecast payload built before multi-swell support
+  // may lack `swells`. Fall back to the legacy single-swell fields so the panel
+  // always renders instead of crashing.
+  const swells: SwellComponent[] =
+    point.swells && point.swells.length > 0
+      ? point.swells
+      : point.swellHeight > 0
+        ? [
+            {
+              kind: 'primary',
+              height: point.swellHeight,
+              period: point.swellPeriod,
+              direction: point.swellDirection,
+            },
+          ]
+        : []
+
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
       {/* header */}
@@ -72,21 +89,16 @@ export function SegmentDetail({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <p className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
-            Swell train ({point.swells.length || 1})
+            Swell train ({swells.length})
           </p>
         </div>
         <div className="flex flex-col gap-2">
-          {(point.swells.length
-            ? point.swells
-            : [
-                {
-                  kind: 'primary' as const,
-                  height: point.swellHeight,
-                  period: point.swellPeriod,
-                  direction: point.swellDirection,
-                },
-              ]
-          ).map((sw, i) => {
+          {swells.length === 0 && (
+            <div className="rounded-xl border border-border bg-secondary/40 p-3 text-sm text-muted-foreground">
+              No measurable swell this hour.
+            </div>
+          )}
+          {swells.map((sw, i) => {
             const reach = swellReach(sw.direction, seg.shoreNormalDeg)
             return (
               <div
