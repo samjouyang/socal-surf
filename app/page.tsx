@@ -79,8 +79,10 @@ export default function Page() {
             <Waves className="size-5" />
           </span>
           <div>
-            <h1 className="font-mono text-sm font-bold uppercase tracking-widest text-foreground">Swellline</h1>
-            <p className="text-[11px] leading-none text-muted-foreground">Southern California surf forecast</p>
+            <h1 className="font-mono text-sm font-bold uppercase tracking-widest text-foreground">SoCal Surf</h1>
+            <p className="text-[11px] leading-none text-muted-foreground">
+              Forecasting <em>every</em> nook and cranny
+            </p>
           </div>
         </div>
         <p className="ml-auto max-w-md text-pretty text-xs text-muted-foreground">

@@ -12,7 +12,7 @@ export function QualityLegend() {
       <div className="relative h-2.5 w-32 shrink-0 overflow-hidden rounded-full sm:w-40">
         <div className="absolute inset-0" style={{ background: `linear-gradient(to right, ${gradient})` }} />
       </div>
-      <span className="font-mono text-[10px] uppercase tracking-wider text-primary">Epic</span>
+      <span className="font-mono text-[10px] uppercase tracking-wider text-primary">Perfect</span>
     </div>
   )
 }

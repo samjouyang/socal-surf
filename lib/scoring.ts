@@ -124,7 +124,7 @@ export function scoreLabel(score: number): string {
   if (score < 6) return 'Fair'
   if (score < 7.5) return 'Fair to Good'
   if (score < 8.7) return 'Good'
-  return 'Epic'
+  return 'Perfect'
 }
 
 const WEIGHTS = { period: 0.3, height: 0.3, wind: 0.3, tide: 0.1 }
