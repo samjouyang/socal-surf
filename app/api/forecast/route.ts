@@ -9,7 +9,15 @@ import type { ForecastResponse, HourlyPoint, SegmentForecast, SwellComponent } f
 // Both are built on NOAA/ECMWF models. The client re-scores locally as the time
 // slider moves, so we return raw hourly data rather than precomputed scores.
 
-export const revalidate = 3600 // seconds; keeps us well within rate limits
+// Run the handler on every request so the returned window is always computed
+// against the current time (the previous static/ISR caching froze the forecast
+// at its build date). Upstream calls are still throttled by UPSTREAM_REVALIDATE
+// via the fetch Data Cache, so Open-Meteo is only hit ~every 30 min regardless
+// of traffic — keeping us well within their rate limits.
+export const dynamic = 'force-dynamic'
+
+// Seconds the raw Open-Meteo responses stay in the Data Cache before we re-pull.
+const UPSTREAM_REVALIDATE = 1800 // 30 minutes
 
 const TZ = 'America/Los_Angeles'
 const FORECAST_DAYS = 5
@@ -55,7 +63,7 @@ async function fetchMarine(batch: typeof COAST_SEGMENTS): Promise<OMHourly[]> {
   url.searchParams.set('timezone', TZ)
   url.searchParams.set('forecast_days', String(FORECAST_DAYS))
   url.searchParams.set('cell_selection', 'sea')
-  const res = await fetch(url, { next: { revalidate } })
+  const res = await fetch(url, { next: { revalidate: UPSTREAM_REVALIDATE } })
   if (!res.ok) throw new Error(`Marine API ${res.status}`)
   const json = await res.json()
   return asArray(json).map((r: { hourly: OMHourly }) => r.hourly)
@@ -70,7 +78,7 @@ async function fetchWind(batch: typeof COAST_SEGMENTS): Promise<OMHourly[]> {
   url.searchParams.set('timezone', TZ)
   url.searchParams.set('forecast_days', String(FORECAST_DAYS))
   url.searchParams.set('cell_selection', 'sea')
-  const res = await fetch(url, { next: { revalidate } })
+  const res = await fetch(url, { next: { revalidate: UPSTREAM_REVALIDATE } })
   if (!res.ok) throw new Error(`Wind API ${res.status}`)
   const json = await res.json()
   return asArray(json).map((r: { hourly: OMHourly }) => r.hourly)
@@ -158,7 +166,10 @@ export async function GET() {
       warnings,
     }
     return NextResponse.json(payload, {
-      headers: { 'Cache-Control': 's-maxage=3600, stale-while-revalidate=7200' },
+      // Allow the CDN to serve a shared copy for up to 30 min (matching the
+      // upstream Data Cache), then refresh in the background. This keeps the
+      // forecast advancing while avoiding a per-request Open-Meteo hit.
+      headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=1800' },
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : 'Unknown error'
