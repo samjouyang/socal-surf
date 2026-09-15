@@ -26,7 +26,11 @@ const fetcher = async (url: string): Promise<ForecastResponse> => {
 
 export default function Page() {
   const { data, error, isLoading } = useSWR<ForecastResponse>('/api/forecast', fetcher, {
-    revalidateOnFocus: false,
+    // Re-pull the forecast every 30 min so open tabs keep advancing, and also
+    // refresh when the tab regains focus/reconnects after being idle.
+    refreshInterval: 30 * 60 * 1000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
     dedupingInterval: 15 * 60 * 1000,
   })
 
